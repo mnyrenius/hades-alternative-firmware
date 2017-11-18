@@ -6,6 +6,7 @@
 #include "uart.h"
 #include "midi.h"
 #include "settings.h"
+#include "notemem.h"
 
 /* ---------- PORT CONFIGURATION ----------
  *
@@ -24,40 +25,42 @@
 
 struct mode_t {
   void (*note_on)(uint8_t, uint8_t);
-  void (*note_off)(uint8_t);
+  void (*note_off)(uint8_t, uint8_t);
 };
 
 enum mode {
-  MODE_LAST_NOTE,
+  MODE_NOTE_PRIO_LAST,
+  MODE_NOTE_PRIO_HIGH,
+  MODE_NOTE_PRIO_LOW,
   MODE_MIDI_LEARN,
+
   MODE_END
 };
 
 static uint16_t          _dac_values[NUM_NOTES];
 static struct settings_t _settings;
+static struct notemem_t  _notemem;
 
-// modes, set by sending note on at midi channel 16
-
-// c - note priority last played
-// default
-void note_on_mode_last_note(uint8_t channel, uint8_t note)
+void note_on_mode_note_prio(uint8_t channel, uint8_t note)
 {
   if (channel == _settings.midi_channel && note < NUM_NOTES) {
-    mcp4921_write(_dac_values[note]);
+    uint8_t n = notemem_note_on(&_notemem, note);
+    mcp4921_write(_dac_values[n]);
     PORTD |= _BV(PD2);
   }
 }
 
-void note_off_mode_last_node(uint8_t channel)
+void note_off_mode_note_prio(uint8_t channel, uint8_t note)
 {
   if (channel == _settings.midi_channel) {
-    PORTD &= ~ _BV(PD2);
+    uint8_t next = notemem_note_off(&_notemem, note);
+    if (next != 0xff)
+      mcp4921_write(_dac_values[next]);
+    else
+      PORTD &= ~ _BV(PD2);
   }
 }
 
-// c# - midi learn
-// when active, send any note on the midi channel you want
-// to use for midi to cv
 void note_on_mode_midi_learn(uint8_t channel, uint8_t note)
 {
   if (channel < 15) {
@@ -66,7 +69,7 @@ void note_on_mode_midi_learn(uint8_t channel, uint8_t note)
   }
 }
 
-void note_off_mode_midi_learn(uint8_t channel)
+void note_off_mode_midi_learn(uint8_t channel, uint8_t note)
 {
   cli();
   for (uint8_t i = 0; i < 3; ++i) {
@@ -79,11 +82,11 @@ void note_off_mode_midi_learn(uint8_t channel)
 }
 
 struct mode_t _modes[] = {
-  { .note_on = note_on_mode_last_note,  .note_off = note_off_mode_last_node  },
+  { .note_on = note_on_mode_note_prio,  .note_off = note_off_mode_note_prio  },
+  { .note_on = note_on_mode_note_prio,  .note_off = note_off_mode_note_prio  },
+  { .note_on = note_on_mode_note_prio,  .note_off = note_off_mode_note_prio  },
   { .note_on = note_on_mode_midi_learn, .note_off = note_off_mode_midi_learn },
 };
-
-static enum mode _current_mode;
 
 void generate_dac_values(uint16_t *values)
 {
@@ -102,23 +105,33 @@ void note_on(uint8_t channel, uint8_t note)
   if (channel == 15) {
     uint8_t k = note % 12;
     switch (k) {
-      case 0:
-        _current_mode = MODE_LAST_NOTE;
+      case 0: // c - mode note prio last
+        _settings.mode = MODE_NOTE_PRIO_LAST;
+        notemem_init(&_notemem, NM_PRIO_LAST);
         break;
-      case 1:
-        _current_mode = MODE_MIDI_LEARN;
+      case 1: // c# - mode midi channel learn
+        _settings.mode = MODE_MIDI_LEARN;
+        break;
+      case 2: // d - mode note prio high
+        _settings.mode = MODE_NOTE_PRIO_HIGH;
+        notemem_init(&_notemem, NM_PRIO_HIGH);
+        break;
+      case 4: // d# - mode note prio low
+        _settings.mode = MODE_NOTE_PRIO_LOW;
+        notemem_init(&_notemem, NM_PRIO_LOW);
         break;
       default:
         break;
     }
+    settings_write(&_settings);
   } else {
-    _modes[_current_mode].note_on(channel, note);
+    _modes[_settings.mode].note_on(channel, note);
   }
 }
 
-void note_off(uint8_t channel)
+void note_off(uint8_t channel, uint8_t note)
 {
-  _modes[_current_mode].note_off(channel);
+  _modes[_settings.mode].note_off(channel, note);
 }
 
 int main()
@@ -127,7 +140,21 @@ int main()
   DDRD |= _BV(PD2);
 
   generate_dac_values(_dac_values);
-  _current_mode = MODE_LAST_NOTE;
+  settings_read(&_settings);
+
+  switch (_settings.mode) {
+    case MODE_NOTE_PRIO_LAST:
+      notemem_init(&_notemem, NM_PRIO_LAST);
+      break;
+    case MODE_NOTE_PRIO_HIGH:
+      notemem_init(&_notemem, NM_PRIO_HIGH);
+      break;
+    case MODE_NOTE_PRIO_LOW:
+      notemem_init(&_notemem, NM_PRIO_LOW);
+      break;
+    default:
+      break;
+  }
 
   struct midi_t midi = {
     .note_on = note_on,
@@ -137,7 +164,6 @@ int main()
   uint8_t rxb;
 
   mcp4921_init();
-  settings_read(&_settings);
   midi_init(&midi);
   uart_init();
 

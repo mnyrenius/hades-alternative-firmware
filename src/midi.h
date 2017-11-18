@@ -5,7 +5,7 @@
 
 struct midi_t {
   void (*note_on)(uint8_t, uint8_t);
-  void (*note_off)(uint8_t);
+  void (*note_off)(uint8_t, uint8_t);
   uint8_t running_status;
   uint8_t data[2];
   uint8_t data_idx;

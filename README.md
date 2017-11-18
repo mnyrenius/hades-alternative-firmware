@@ -32,7 +32,12 @@ a mode.
 Curently, the implemented modes are:
 
   c  - Note priority last played
-  c# - midi channel learn
+
+  c# - Midi channel learn
+
+  d  - Note priority high
+
+  e  - Note priority low
 
 Settings are stored in eeprom and will be restored on startup.
 
@@ -42,3 +47,12 @@ Example, set midi channel 2:
   2. On channel 2, send any note on (three short pulses will be seen again).
   3. On channel 16, press c to enter mode "Note priority last played" again.
   4. The device should now listen on channel 2.
+
+Changelog
+
+v 0.2
+  * Added note prio modes for multiple simultaneous notes
+
+v 0.1
+  * First version
+

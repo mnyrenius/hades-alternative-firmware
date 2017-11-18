@@ -5,6 +5,7 @@
 
 struct settings_t {
   uint8_t midi_channel;
+  uint8_t mode;
 };
 
 void settings_read(struct settings_t *s);

@@ -50,13 +50,13 @@ void _handle_msg(struct midi_t *m, uint8_t byte)
   switch (byte & 0xf0) {
     case 0x90:
       if (msg[1] == 0)
-        m->note_off(byte & 0x0f);
+        m->note_off(byte & 0x0f, msg[0]);
       else
         m->note_on(byte & 0x0f, msg[0]);
       break;
 
     case 0x80:
-      m->note_off(byte & 0x0f);
+      m->note_off(byte & 0x0f, msg[0]);
       break;
 
     default:
