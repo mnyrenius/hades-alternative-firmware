@@ -2,6 +2,7 @@
 #include <assert.h>
 #include "ringbuffer.h"
 #include "notemem.h"
+#include "turing.h"
 
 #define RB_READ(rb, expected) {\
   { \
@@ -89,9 +90,55 @@ void test_notemem(void)
   printf("TEST NOTEMEM OK!\n");
 }
 
+void turing_print(struct turing_t * t)
+{
+  int len = t->len;
+
+  printf("[ ");
+  for (int i = 15; i >= 0; i--) {
+    if (i == 7)
+      printf(" ");
+    if (len-1 == i)
+      printf("|");
+    if (t->shiftreg & (1 << i))
+      printf("1");
+    else
+      printf("0");
+  }
+  printf(" ] -> ");
+  printf("note value: %u\n", t->shiftreg & 0x00ff);
+}
+
+#define SOME_CLOCKS(t) {\
+  for (int i = 0; i < 16; ++i) { \
+  turing_clock(t); \
+  turing_print(t); \
+  } \
+}
+
+void test_turing(void)
+{
+  struct turing_t t;
+
+  turing_init(&t);
+  turing_set_random(&t, 5);
+  SOME_CLOCKS(&t);
+  turing_set_length(&t, 12);
+  SOME_CLOCKS(&t);
+  turing_set_random(&t, 2);
+  SOME_CLOCKS(&t);
+  turing_set_random(&t, 11);
+  SOME_CLOCKS(&t);
+  turing_set_length(&t, 5);
+  SOME_CLOCKS(&t);
+
+  printf("TEST TURING OK!\n");
+}
+
 int main(void)
 {
   test_ringbuffer();
   test_notemem();
+  test_turing();
 }
 
