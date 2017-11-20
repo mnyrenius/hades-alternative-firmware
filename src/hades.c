@@ -45,8 +45,10 @@ void note_on_mode_note_prio(uint8_t channel, uint8_t note)
 {
   if (channel == _settings.midi_channel && note < NUM_NOTES) {
     uint8_t n = notemem_note_on(&_notemem, note);
-    mcp4921_write(_dac_values[n]);
-    PORTD |= _BV(PD2);
+    if (n < NUM_NOTES) {
+      mcp4921_write(_dac_values[n]);
+      PORTD |= _BV(PD2);
+    }
   }
 }
 
@@ -54,7 +56,7 @@ void note_off_mode_note_prio(uint8_t channel, uint8_t note)
 {
   if (channel == _settings.midi_channel) {
     uint8_t next = notemem_note_off(&_notemem, note);
-    if (next != 0xff)
+    if (next < NUM_NOTES)
       mcp4921_write(_dac_values[next]);
     else
       PORTD &= ~ _BV(PD2);
@@ -116,7 +118,7 @@ void note_on(uint8_t channel, uint8_t note)
         _settings.mode = MODE_NOTE_PRIO_HIGH;
         notemem_init(&_notemem, NM_PRIO_HIGH);
         break;
-      case 4: // d# - mode note prio low
+      case 4: // e - mode note prio low
         _settings.mode = MODE_NOTE_PRIO_LOW;
         notemem_init(&_notemem, NM_PRIO_LOW);
         break;
@@ -170,8 +172,8 @@ int main()
   sei();
 
   while (1) {
-    rxb = uart_receive();
-    midi_process(&midi, rxb);
+    if (uart_receive(&rxb) == 0)
+      midi_process(&midi, rxb);
   }
 }
 

@@ -15,9 +15,9 @@ void uart_init(void)
   UCSR0B = _BV(RXEN0)  | _BV(RXCIE0);
 }
 
-uint8_t uart_receive(void)
+int uart_receive(uint8_t * data)
 {
-  return ringbuffer_read(&_rb);
+  return ringbuffer_read(&_rb, data);
 }
 
 ISR(USART_RX_vect)

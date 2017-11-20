@@ -3,6 +3,13 @@
 #include "ringbuffer.h"
 #include "notemem.h"
 
+#define RB_READ(rb, expected) {\
+  { \
+    uint8_t value; \
+    assert(ringbuffer_read(rb, &value) == 0); \
+    assert(value == expected); \
+  } \
+}
 void test_ringbuffer(void)
 {
   struct ringbuffer_t rb;
@@ -13,15 +20,15 @@ void test_ringbuffer(void)
   }
 
   for (int i = 1; i < 32; ++i) {
-    assert(ringbuffer_read(&rb) == i);
+    RB_READ(&rb, i);
   }
 
   ringbuffer_write(&rb, 1);
   ringbuffer_write(&rb, 3);
-  assert(ringbuffer_read(&rb) == 1);
+  RB_READ(&rb, 1);
   ringbuffer_write(&rb, 5);
-  assert(ringbuffer_read(&rb) == 3);
-  assert(ringbuffer_read(&rb) == 5);
+  RB_READ(&rb, 3);
+  RB_READ(&rb, 5);
 
   printf("TEST RINGBUFFER OK!\n");
 }

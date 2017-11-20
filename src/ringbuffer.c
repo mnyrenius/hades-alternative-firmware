@@ -25,13 +25,17 @@ void ringbuffer_write(struct ringbuffer_t *rb, uint8_t data)
   }
 }
 
-uint8_t ringbuffer_read(struct ringbuffer_t *rb)
+int ringbuffer_read(struct ringbuffer_t *rb, uint8_t * data)
 {
-  while (_empty(rb));
+  int ret = -1;
 
-  uint8_t r = rb->read_pos;
-  uint8_t value = rb->buffer[r];
-  rb->read_pos = (r + 1) & (RINGBUFFER_SIZE - 1);
-  return value;
+  if (!_empty(rb)) {
+    uint8_t r = rb->read_pos;
+    *data = rb->buffer[r];
+    rb->read_pos = (r + 1) & (RINGBUFFER_SIZE - 1);
+    ret = 0;
+  }
+
+  return ret;
 }
 

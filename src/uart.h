@@ -4,6 +4,6 @@
 #include <stdint.h>
 
 void uart_init(void);
-uint8_t uart_receive(void);
+int uart_receive(uint8_t *data);
 
 #endif /* UART_H */

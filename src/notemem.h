@@ -3,6 +3,18 @@
 
 #include <stdint.h>
 
+/* data structure for keeping a sorted list
+   of multiple simultaneously active notes.
+
+   each new note is inserted in the correct
+   position according to the prio order.
+   see test_notemem for information about
+   each prio.
+
+   inspired by "note stack" implemented in
+   cvpal by mutable instruments, although this
+   implementation is most likely crappier :) */
+
 #define NUM_NODES 12
 
 struct node_t {

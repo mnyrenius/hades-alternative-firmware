@@ -4,7 +4,10 @@ Alternative firmware for Hades MIDI to CV circuit.
 --- DISCLAIMER ---
 
 This is just a hobby project and I'm not affiliated with the company
-behind the synth in any way.
+behind the synth in any way. The purpose of this project is mainly to
+have fun an learn stuff. If you're looking for something really stable
+with perfect MIDI implementation, I would recommend to look into porting
+a more mature open source project to work with the Hades.
 
 I don't own the Hades myself, this firmware is tested with the midi to cv
 circuit (from the provided schematics) on breadboard only.
@@ -21,8 +24,6 @@ firmware, or flash this firmware on a separate atmega328 and keep the original.
 --- USAGE ---
 
 No hardware modifications are required.
-
-Default note priority is last note played (also currently the only implemented note priority).
 
 Default midi channel is 1.
 

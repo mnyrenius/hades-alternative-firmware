@@ -13,6 +13,6 @@ struct ringbuffer_t {
 
 void ringbuffer_init(struct ringbuffer_t *rb);
 void ringbuffer_write(struct ringbuffer_t *rb, uint8_t data);
-uint8_t ringbuffer_read(struct ringbuffer_t *rb);
+int ringbuffer_read(struct ringbuffer_t *rb, uint8_t *data);
 
 #endif /* RINGBUFFER_H */
