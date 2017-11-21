@@ -3,6 +3,11 @@
 #include "ringbuffer.h"
 #include "notemem.h"
 #include "turing.h"
+#include <time.h>
+
+#define RB_WRITE(rb, value) {\
+  ringbuffer_write(rb, value); \
+}
 
 #define RB_READ(rb, expected) {\
   { \
@@ -11,25 +16,33 @@
     assert(value == expected); \
   } \
 }
+
+#define RB_EXPECT_EMPTY(rb) {\
+  assert(ringbuffer_read(rb, 0) != 0); \
+}
+
 void test_ringbuffer(void)
 {
   struct ringbuffer_t rb;
   ringbuffer_init(&rb);
 
   for (int i = 1; i < 32; ++i) {
-    ringbuffer_write(&rb, i);
+    RB_WRITE(&rb, i);
   }
 
   for (int i = 1; i < 32; ++i) {
     RB_READ(&rb, i);
   }
+  RB_EXPECT_EMPTY(&rb);
 
-  ringbuffer_write(&rb, 1);
-  ringbuffer_write(&rb, 3);
+  RB_WRITE(&rb, 1);
+  RB_WRITE(&rb, 3);
   RB_READ(&rb, 1);
-  ringbuffer_write(&rb, 5);
+  RB_WRITE(&rb, 5);
   RB_READ(&rb, 3);
   RB_READ(&rb, 5);
+
+  RB_EXPECT_EMPTY(&rb);
 
   printf("TEST RINGBUFFER OK!\n");
 }
@@ -90,7 +103,7 @@ void test_notemem(void)
   printf("TEST NOTEMEM OK!\n");
 }
 
-void turing_print(struct turing_t * t)
+void turing_print(struct turing_t * t, uint8_t note)
 {
   int len = t->len;
 
@@ -106,13 +119,12 @@ void turing_print(struct turing_t * t)
       printf("0");
   }
   printf(" ] -> ");
-  printf("note value: %u\n", t->shiftreg & 0x00ff);
+  printf("note value: %u\n", note);
 }
 
 #define SOME_CLOCKS(t) {\
   for (int i = 0; i < 16; ++i) { \
-  turing_clock(t); \
-  turing_print(t); \
+    turing_print(t, turing_clock(t)); \
   } \
 }
 
@@ -120,8 +132,8 @@ void test_turing(void)
 {
   struct turing_t t;
 
-  turing_init(&t);
-  turing_set_random(&t, 5);
+  turing_init(&t, time(0));
+  turing_set_random(&t, 8);
   SOME_CLOCKS(&t);
   turing_set_length(&t, 12);
   SOME_CLOCKS(&t);
@@ -130,6 +142,12 @@ void test_turing(void)
   turing_set_random(&t, 11);
   SOME_CLOCKS(&t);
   turing_set_length(&t, 5);
+  turing_set_range(&t, 2);
+  SOME_CLOCKS(&t);
+  turing_set_length(&t, 3);
+  turing_set_range(&t, 3);
+  turing_set_random(&t, 4);
+  SOME_CLOCKS(&t);
   SOME_CLOCKS(&t);
 
   printf("TEST TURING OK!\n");

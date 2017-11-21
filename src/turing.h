@@ -14,13 +14,16 @@
 
 struct turing_t {
   uint16_t shiftreg;
-  uint8_t rand;
+  uint16_t rand;
+  uint16_t next;
   uint16_t len;
+  uint8_t range;
 };
 
-void turing_init(struct turing_t *t);
+void turing_init(struct turing_t *t, uint16_t seed);
 void turing_set_random(struct turing_t *t, uint8_t rand);
 void turing_set_length(struct turing_t *t, uint8_t len);
+void turing_set_range(struct turing_t *t, uint8_t range);
 uint8_t turing_clock(struct turing_t *t);
 
 #endif /* TURING_H */
