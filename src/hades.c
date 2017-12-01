@@ -7,6 +7,12 @@
 #include "midi.h"
 #include "settings.h"
 #include "notemem.h"
+#include "turing.h"
+#include "mode.h"
+#include "mode_prio.h"
+#include "mode_midilearn.h"
+#include "mode_turing.h"
+#include "constants.h"
 
 /* ---------- PORT CONFIGURATION ----------
  *
@@ -18,76 +24,17 @@
  *
  *-------------------------------------- */
 
-#define NUM_OCTAVES    5
-#define NUM_NOTES      (12 * NUM_OCTAVES) + 1
-#define NUM_DAC_VALUES 4096
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+extern struct mode_prio_t mode_prio;
+extern struct mode_midilearn_t mode_midilearn;
+extern struct mode_turing_t mode_turing;
 
-struct mode_t {
-  void (*note_on)(uint8_t, uint8_t);
-  void (*note_off)(uint8_t, uint8_t);
-};
-
-enum mode {
-  MODE_NOTE_PRIO_LAST,
-  MODE_NOTE_PRIO_HIGH,
-  MODE_NOTE_PRIO_LOW,
-  MODE_MIDI_LEARN,
-
-  MODE_END
-};
-
-static uint16_t          _dac_values[NUM_NOTES];
-static struct settings_t _settings;
-static struct notemem_t  _notemem;
-
-void note_on_mode_note_prio(uint8_t channel, uint8_t note)
-{
-  if (channel == _settings.midi_channel && note < NUM_NOTES) {
-    uint8_t n = notemem_note_on(&_notemem, note);
-    if (n < NUM_NOTES) {
-      mcp4921_write(_dac_values[n]);
-      PORTD |= _BV(PD2);
-    }
-  }
-}
-
-void note_off_mode_note_prio(uint8_t channel, uint8_t note)
-{
-  if (channel == _settings.midi_channel) {
-    uint8_t next = notemem_note_off(&_notemem, note);
-    if (next < NUM_NOTES)
-      mcp4921_write(_dac_values[next]);
-    else
-      PORTD &= ~ _BV(PD2);
-  }
-}
-
-void note_on_mode_midi_learn(uint8_t channel, uint8_t note)
-{
-  if (channel < 15) {
-    _settings.midi_channel = channel;
-    settings_write(&_settings);
-  }
-}
-
-void note_off_mode_midi_learn(uint8_t channel, uint8_t note)
-{
-  cli();
-  for (uint8_t i = 0; i < 3; ++i) {
-    PORTD |= _BV(PD2);
-    _delay_ms(250);
-    PORTD &= ~ _BV(PD2);
-    _delay_ms(250);
-  }
-  sei();
-}
-
-struct mode_t _modes[] = {
-  { .note_on = note_on_mode_note_prio,  .note_off = note_off_mode_note_prio  },
-  { .note_on = note_on_mode_note_prio,  .note_off = note_off_mode_note_prio  },
-  { .note_on = note_on_mode_note_prio,  .note_off = note_off_mode_note_prio  },
-  { .note_on = note_on_mode_midi_learn, .note_off = note_off_mode_midi_learn },
+struct hades_t {
+  struct settings_t settings;
+  struct notemem_t notemem;
+  struct turing_t turing;
+  uint16_t dac_values[NUM_NOTES];
+  struct mode_t *modes[MODE_END];
+  struct output_state_t state;
 };
 
 void generate_dac_values(uint16_t *values)
@@ -102,65 +49,111 @@ void generate_dac_values(uint16_t *values)
     values[i] = MIN(NUM_DAC_VALUES - 1, 205 * i / 3);
 }
 
-void note_on(uint8_t channel, uint8_t note)
+void note_on(void *arg, uint8_t channel, uint8_t note)
 {
+  struct hades_t * cxt = (struct hades_t *)arg;
+  struct mode_t *m = cxt->modes[cxt->settings.mode];
+
   if (channel == 15) {
+    if (m->exit)
+      m->exit(m);
     uint8_t k = note % 12;
     switch (k) {
       case 0: // c - mode note prio last
-        _settings.mode = MODE_NOTE_PRIO_LAST;
-        notemem_init(&_notemem, NM_PRIO_LAST);
+        cxt->settings.mode = MODE_NOTE_PRIO_LAST;
         break;
       case 1: // c# - mode midi channel learn
-        _settings.mode = MODE_MIDI_LEARN;
+        cxt->settings.mode = MODE_MIDI_LEARN;
         break;
       case 2: // d - mode note prio high
-        _settings.mode = MODE_NOTE_PRIO_HIGH;
-        notemem_init(&_notemem, NM_PRIO_HIGH);
+        cxt->settings.mode = MODE_NOTE_PRIO_HIGH;
         break;
       case 4: // e - mode note prio low
-        _settings.mode = MODE_NOTE_PRIO_LOW;
-        notemem_init(&_notemem, NM_PRIO_LOW);
+        cxt->settings.mode = MODE_NOTE_PRIO_LOW;
+        break;
+      case 5: // f = mode turing machine
+        cxt->settings.mode = MODE_TURINGMACHINE;
         break;
       default:
         break;
     }
-    settings_write(&_settings);
+    m = cxt->modes[cxt->settings.mode];
+    if (m->init)
+      m->init(m);
+    settings_write(&cxt->settings);
   } else {
-    _modes[_settings.mode].note_on(channel, note);
+    m->note_on(m, channel, note);
   }
 }
 
-void note_off(uint8_t channel, uint8_t note)
+void note_off(void *arg, uint8_t channel, uint8_t note)
 {
-  _modes[_settings.mode].note_off(channel, note);
+  struct hades_t * cxt = (struct hades_t *)arg;
+  struct mode_t *m = cxt->modes[cxt->settings.mode];
+  m->note_off(m, channel, note);
+}
+
+void clock(void *arg)
+{
+  struct hades_t * cxt = (struct hades_t *)arg;
+  struct mode_t *m = cxt->modes[cxt->settings.mode];
+  if (m->clock)
+    m->clock(m);
+}
+
+void start(void *cxt)
+{
+}
+
+void stop(void *cxt)
+{
 }
 
 int main()
 {
-  // setup gate as out
   DDRD |= _BV(PD2);
 
-  generate_dac_values(_dac_values);
-  settings_read(&_settings);
+  struct hades_t hades = {
+    .modes = {
+      (void*)&mode_prio,
+      (void*)&mode_prio,
+      (void*)&mode_prio,
+      (void*)&mode_midilearn,
+      (void*)&mode_turing,
+    },
+    .state = {
+      .cv = 0,
+      .gate = 0,
+      .updated = 0,
+    },
+  };
 
-  switch (_settings.mode) {
-    case MODE_NOTE_PRIO_LAST:
-      notemem_init(&_notemem, NM_PRIO_LAST);
-      break;
-    case MODE_NOTE_PRIO_HIGH:
-      notemem_init(&_notemem, NM_PRIO_HIGH);
-      break;
-    case MODE_NOTE_PRIO_LOW:
-      notemem_init(&_notemem, NM_PRIO_LOW);
-      break;
-    default:
-      break;
-  }
+  generate_dac_values(hades.dac_values);
+  settings_read(&hades.settings);
+
+  mode_prio.settings = &hades.settings;
+  mode_prio.notemem = &hades.notemem;
+  mode_prio.dac_values = hades.dac_values;
+  mode_prio.state = &hades.state;
+
+  mode_midilearn.settings = &hades.settings;
+ 
+  mode_turing.settings = &hades.settings;
+  mode_turing.turing = &hades.turing;
+  mode_turing.dac_values = hades.dac_values;
+  mode_turing.state = &hades.state;
+   
+  struct mode_t *m = hades.modes[hades.settings.mode];
+  if (m->init)
+    m->init(m); 
 
   struct midi_t midi = {
+    .callback_data = &hades,
     .note_on = note_on,
     .note_off = note_off,
+    .rt_clock = clock,
+    .rt_start = start,
+    .rt_stop = stop,
   };
 
   uint8_t rxb;
@@ -174,6 +167,20 @@ int main()
   while (1) {
     if (uart_receive(&rxb) == 0)
       midi_process(&midi, rxb);
+
+    m = hades.modes[hades.settings.mode];
+    if (m->update)
+      m->update(m);
+
+    if (hades.state.updated) {
+      mcp4921_write(hades.state.cv);
+      if (hades.state.gate)
+        PORTD |= _BV(PD2);
+      else
+        PORTD &= ~_BV(PD2);
+
+      hades.state.updated = 0;
+    }
   }
 }
 

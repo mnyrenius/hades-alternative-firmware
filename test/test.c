@@ -105,7 +105,7 @@ void test_notemem(void)
 
 void turing_print(struct turing_t * t, uint8_t note)
 {
-  int len = t->len;
+  int len = turing_get_length(t);
 
   printf("[ ");
   for (int i = 15; i >= 0; i--) {
@@ -133,20 +133,20 @@ void test_turing(void)
   struct turing_t t;
 
   turing_init(&t, time(0));
-  turing_set_random(&t, 8);
+  turing_step_random(&t, 2);
   SOME_CLOCKS(&t);
-  turing_set_length(&t, 12);
+  turing_step_length(&t, -1);
   SOME_CLOCKS(&t);
-  turing_set_random(&t, 2);
+  turing_step_random(&t, -3);
   SOME_CLOCKS(&t);
-  turing_set_random(&t, 11);
+  turing_step_random(&t, 2);
   SOME_CLOCKS(&t);
-  turing_set_length(&t, 5);
-  turing_set_range(&t, 2);
+  turing_step_length(&t, -2);
+  turing_step_range(&t, -3);
   SOME_CLOCKS(&t);
-  turing_set_length(&t, 3);
-  turing_set_range(&t, 3);
-  turing_set_random(&t, 4);
+  turing_step_length(&t, -2);
+  turing_step_range(&t, -1);
+  turing_step_random(&t, -1);
   SOME_CLOCKS(&t);
   SOME_CLOCKS(&t);
 

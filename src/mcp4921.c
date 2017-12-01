@@ -1,6 +1,5 @@
 #include "mcp4921.h"
 #include <avr/io.h>
-#include <stdint.h>
 
 void mcp4921_init(void)
 {
