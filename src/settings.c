@@ -4,30 +4,30 @@
 
 #define MAGIC 0x3c
 
-settings_t EEMEM _eeprom_settings = {
-  .midi_channel = 0,
-  .mode = 0
-};
+settings_t EEMEM eeprom_settings;
 
-uint8_t EEMEM _magic;
+uint8_t EEMEM magic;
 
 void settings_read(settings_t *s)
 {
-  if (eeprom_read_byte(&_magic) == MAGIC) {
-    eeprom_read_block(s, &_eeprom_settings, sizeof(_eeprom_settings));
+  if (eeprom_read_byte(&magic) == MAGIC) {
+    eeprom_read_block(s, &eeprom_settings, sizeof(eeprom_settings));
     if (s->midi_channel > 15)
       s->midi_channel = 0;
     if (s->mode > 15)
       s->mode = 0;
+    if (s->midi_base_note > 195)
+      s->midi_base_note = 0;
   } else {
     s->midi_channel = 0;
     s->mode = 0;
+    s->midi_base_note = 0;
   }
 }
 
 void settings_write(settings_t *s)
 {
-  eeprom_update_block(s, &_eeprom_settings, sizeof(_eeprom_settings));
-  eeprom_update_byte(&_magic, MAGIC);
+  eeprom_update_block(s, &eeprom_settings, sizeof(eeprom_settings));
+  eeprom_update_byte(&magic, MAGIC);
 }
 

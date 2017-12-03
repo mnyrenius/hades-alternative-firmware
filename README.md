@@ -44,18 +44,31 @@ Curently, the implemented modes are:
 
 Settings are stored in eeprom and will be restored on startup.
 
-Example, set midi channel 2:
+--- MIDI LEARN MODE ---
 
-  1. On channel 16, press c# to enter midi channel learn mode (three short pulses will be seen on the gate output).
-  2. On channel 2, send any note on (three short pulses will be seen again).
+Example, set midi channel 2 and set C2 as the base note that should output 0V:
+
+  1. On channel 16, press c# to enter midi channel learn mode.
+  2. On channel 2, press C3 (three short pulses will be seen on gate output).
   3. On channel 16, press c to enter mode "Note priority last played" again.
-  4. The device should now listen on channel 2.
+  4. The device should now listen on channel 2 and C2 should output 0V.
 
-Changelog
 
-v 0.2
-  * Added note prio modes for multiple simultaneous notes
+--- TURING MACHINE MODE ---
 
-v 0.1
-  * First version
+This mode mimics the eurorack module by Music Thing Modular.
+
+Fixed clock for now, should be synced to midi clock later.
+
+c  - turn random knob clockwise (bit invert probability [1/2, 1/4, off, 1/8, 1/16])
+
+c# - turn random knob counter-clockwise
+
+d  - turn length knob clockwise ([2, 3, 4, 5, 8, 12, 16])
+
+d# - turn length knob counter-clockwise
+
+f  - turn range knob clockwise
+
+f# - turn range knob counter-clockwise
 

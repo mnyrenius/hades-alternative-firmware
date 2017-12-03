@@ -8,6 +8,7 @@ static void mode_note_on(mode_midilearn_t *cxt, uint8_t channel, uint8_t note)
 {
   if (channel < 15) {
     cxt->settings->midi_channel = channel;
+    cxt->settings->midi_base_note = note;
     settings_write(cxt->settings);
   }
 }

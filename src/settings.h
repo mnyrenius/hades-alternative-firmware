@@ -6,6 +6,7 @@
 typedef struct settings_t {
   uint8_t midi_channel;
   uint8_t mode;
+  uint8_t midi_base_note;
 } settings_t;
 
 void settings_read(settings_t *s);

@@ -77,7 +77,7 @@ void note_on(void *arg, uint8_t channel, uint8_t note)
     settings_write(&cxt->settings);
   } else {
     m->channel = channel;
-    m->note = note;
+    m->note = note > cxt->settings.midi_base_note ? note - cxt->settings.midi_base_note : 0;
     m->event(m, EVENT_NOTE_ON);
   }
 }
@@ -87,7 +87,7 @@ void note_off(void *arg, uint8_t channel, uint8_t note)
   hades_t * cxt = (hades_t *)arg;
   mode_t *m = &cxt->modes[cxt->settings.mode];
   m->channel = channel;
-  m->note = note;
+  m->note = note > cxt->settings.midi_base_note ? note - cxt->settings.midi_base_note : 0;
   m->event(m, EVENT_NOTE_OFF);
 }
 
