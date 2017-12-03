@@ -17,17 +17,17 @@
 
 #define NUM_NODES 12
 
-struct node_t {
+typedef struct node_t {
   uint8_t note;
   struct node_t *next;
-};
+} node_t;
 
-struct notemem_t {
-  struct node_t nodes[NUM_NODES];
-  struct node_t *top;
+typedef struct notemem_t {
+  node_t nodes[NUM_NODES];
+  node_t *top;
   int (*cmp)(uint8_t, uint8_t);
   uint8_t active;
-};
+} notemem_t;
 
 enum notemem_prio {
   NM_PRIO_HIGH,
@@ -37,8 +37,8 @@ enum notemem_prio {
   NM_PRIO_ENUM_END,
 };
 
-void notemem_init(struct notemem_t *nm, enum notemem_prio prio);
-uint8_t notemem_note_on(struct notemem_t *nm, uint8_t note);
-uint8_t notemem_note_off(struct notemem_t *nm, uint8_t note);
+void notemem_init(notemem_t *nm, enum notemem_prio prio);
+uint8_t notemem_note_on(notemem_t *nm, uint8_t note);
+uint8_t notemem_note_off(notemem_t *nm, uint8_t note);
 
 #endif /* NOTEMEM_H */

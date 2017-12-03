@@ -3,23 +3,11 @@
 #include "constants.h"
 #include "settings.h"
 
-struct mode_prio_t mode_prio = {
-  .base = {
-    .init = mode_prio_init,
-    .exit = 0,
-    .note_on = mode_prio_note_on,
-    .note_off = mode_prio_note_off,
-    .clock = 0,
-    .update = 0,
-  }
-};
-
-void mode_prio_init(struct mode_t *cxt)
+void mode_init(mode_prio_t *cxt)
 {
-  struct mode_prio_t *p_cxt = (struct mode_prio_t*)cxt;
   enum notemem_prio prio = MODE_NOTE_PRIO_LAST;
 
-  switch(p_cxt->settings->mode) {
+  switch(cxt->settings->mode) {
     case MODE_NOTE_PRIO_LAST:
       prio = NM_PRIO_LAST;
       break;
@@ -31,37 +19,45 @@ void mode_prio_init(struct mode_t *cxt)
       break;
   }
 
-  notemem_init(p_cxt->notemem, prio);
+  notemem_init(cxt->notemem, prio);
 }
 
-void mode_prio_note_on(struct mode_t *cxt, uint8_t channel, uint8_t note)
+void mode_note_on(mode_prio_t *cxt, uint8_t note)
 {
-  struct mode_prio_t *p_cxt = (struct mode_prio_t*)cxt;
-  if (channel == p_cxt->settings->midi_channel && note < NUM_NOTES) {
-    uint8_t n = notemem_note_on(p_cxt->notemem, note);
+  if (note < NUM_NOTES) {
+    uint8_t n = notemem_note_on(cxt->notemem, note);
     if (n < NUM_NOTES) {
-      p_cxt->state->cv = p_cxt->dac_values[n];
-      p_cxt->state->gate = 1;
-      p_cxt->state->updated = 1;
+      cxt->out->cv = cxt->dac_values[n];
+      cxt->out->gate = 1;
+      cxt->out->updated = 1;
     }
   }
 }
 
-void mode_prio_note_off(struct mode_t *cxt, uint8_t channel, uint8_t note)
+void mode_note_off(mode_prio_t *cxt, uint8_t note)
 {
-  struct mode_prio_t *p_cxt = (struct mode_prio_t*)cxt;
-  if (channel == p_cxt->settings->midi_channel) {
-    uint8_t next = notemem_note_off(p_cxt->notemem, note);
-    if (next < NUM_NOTES)
-      p_cxt->state->cv = p_cxt->dac_values[next];
-    else
-      p_cxt->state->gate = 0;
-    
-    p_cxt->state->updated = 1;
-  } 
+  uint8_t next = notemem_note_off(cxt->notemem, note);
+  if (next < NUM_NOTES)
+    cxt->out->cv = cxt->dac_values[next];
+  else
+    cxt->out->gate = 0;
+
+  cxt->out->updated = 1;
 }
 
-void mode_prio_update(struct mode_t *cxt)
+void mode_prio_event(mode_t *cxt, enum event ev)
 {
+  switch (ev) {
+    case EVENT_INIT:
+      mode_init(cxt->prio_cxt);
+      break;
+    case EVENT_NOTE_ON:
+      mode_note_on(cxt->prio_cxt, cxt->note);
+      break;
+    case EVENT_NOTE_OFF:
+      mode_note_off(cxt->prio_cxt, cxt->note);
+      break;
+    default:
+      break;
+  };
 }
- 

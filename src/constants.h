@@ -6,10 +6,10 @@
 #define NUM_DAC_VALUES 4096
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
  
-struct output_state_t {
+typedef struct output_t {
   uint16_t cv;
   uint8_t gate;
   uint8_t updated;
-};
+} output_t;
 
 #endif /* CONSTANTS_H */

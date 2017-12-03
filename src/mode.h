@@ -3,13 +3,17 @@
 
 #include <stdint.h>
 
-struct mode_t {
-  void (*init)(struct mode_t*);
-  void (*note_on)(struct mode_t*, uint8_t, uint8_t);
-  void (*note_off)(struct mode_t*, uint8_t, uint8_t);
-  void (*clock)(struct mode_t*);
-  void (*update)(struct mode_t*);
-  void (*exit)(struct mode_t*);
+enum event {
+  EVENT_INIT,
+  EVENT_NOTE_ON,
+  EVENT_NOTE_OFF,
+  EVENT_RT_CLOCK,
+  EVENT_RT_START,
+  EVENT_RT_STOP,
+  EVENT_UPDATE,
+  EVENT_EXIT,
+
+  EVENT_END,
 };
 
 enum mode {
@@ -21,6 +25,16 @@ enum mode {
 
   MODE_END
 };
-  
+
+typedef struct mode_t {
+  void (*event)(struct mode_t*, enum event);
+  uint8_t channel, note;
+  union {
+    struct mode_prio_t *prio_cxt;
+    struct mode_midilearn_t *midilearn_cxt;
+    struct mode_turing_t *turing_cxt;
+  };
+} mode_t;
+
 #endif /* MODE_H */
 

@@ -40,6 +40,8 @@ Curently, the implemented modes are:
 
   e  - Note priority low
 
+  f  - Turing machine
+
 Settings are stored in eeprom and will be restored on startup.
 
 Example, set midi channel 2:

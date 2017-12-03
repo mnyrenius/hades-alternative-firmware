@@ -3,32 +3,16 @@
 #include <avr/interrupt.h>
 #include "settings.h"
 #include <util/delay.h>
- 
-struct mode_midilearn_t mode_midilearn = {
-  .base = {
-    .init = mode_midilearn_init,
-    .exit = 0,
-    .note_on = mode_midilearn_note_on,
-    .note_on = mode_midilearn_note_off,
-    .clock = 0,
-    .update = 0,
-  }
-};
 
-void mode_midilearn_init(struct mode_t *cxt)
-{
-}
-
-void mode_midilearn_note_on(struct mode_t *cxt, uint8_t channel, uint8_t note)
+static void mode_note_on(mode_midilearn_t *cxt, uint8_t channel, uint8_t note)
 {
   if (channel < 15) {
-    struct mode_midilearn_t *m_cxt = (struct mode_midilearn_t*)cxt;
-    m_cxt->settings->midi_channel = channel;
-    settings_write(m_cxt->settings);
+    cxt->settings->midi_channel = channel;
+    settings_write(cxt->settings);
   }
 }
 
-void mode_midilearn_note_off(struct mode_t *cxt, uint8_t channel, uint8_t note)
+static void mode_note_off(mode_midilearn_t *cxt, uint8_t note)
 {
   cli();
   for (uint8_t i = 0; i < 3; ++i) {
@@ -37,6 +21,19 @@ void mode_midilearn_note_off(struct mode_t *cxt, uint8_t channel, uint8_t note)
     PORTD &= ~ _BV(PD2);
     _delay_ms(250);
   }
-  sei(); 
+  sei();
+} 
+void mode_midilearn_event(mode_t *cxt, enum event ev)
+{
+  switch (ev) {
+    case EVENT_NOTE_ON:
+      mode_note_on(cxt->midilearn_cxt, cxt->channel, cxt->note);
+      break;
+    case EVENT_NOTE_OFF:
+      mode_note_off(cxt->midilearn_cxt, cxt->note);
+      break;
+    default:
+      break;
+  }
 }
  

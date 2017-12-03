@@ -3,12 +3,12 @@
 
 #include <stdint.h>
 
-struct settings_t {
+typedef struct settings_t {
   uint8_t midi_channel;
   uint8_t mode;
-};
+} settings_t;
 
-void settings_read(struct settings_t *s);
-void settings_write(struct settings_t *s);
+void settings_read(settings_t *s);
+void settings_write(settings_t *s);
 
 #endif /* SETTINGS_H */

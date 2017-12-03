@@ -4,83 +4,90 @@
 #include <avr/interrupt.h>
 #include "settings.h"
  
-struct mode_turing_t mode_turing = {
-  .base = {
-    .init = (void*) mode_turing_init,
-    .exit = (void*) mode_turing_exit,
-    .note_on = (void*) mode_turing_note_on,
-    .note_off = (void*) mode_turing_note_off,
-    .clock = (void*) mode_turing_clock,
-    .update = (void*) mode_turing_update,
-  }
-};
-
-void mode_turing_init(struct mode_turing_t *cxt)
+static void mode_init(mode_turing_t *cxt)
 {
   turing_init(cxt->turing, 0);
 
+  TCCR1B = 0;
   TCCR1B |= (1 << WGM12);
   OCR1A = 60000;
   TCCR1B |= ((1 << CS10) | (1 << CS11));
 }
 
-void mode_turing_exit(struct mode_turing_t *cxt)
+static void mode_exit(mode_turing_t *cxt)
 {
   TCCR1B = 0;
 }
 
-void mode_turing_note_on(struct mode_turing_t *cxt, uint8_t channel, uint8_t note)
+static void mode_note_on(mode_turing_t *cxt, uint8_t note)
 {
-  if (channel == cxt->settings->midi_channel) {
-    switch (note % 12) {
-      case 0:
-        turing_step_random(cxt->turing, 1);
-        break;
-      case 1:
-        turing_step_random(cxt->turing, -1);
-        break;
-      case 2:
-        turing_step_length(cxt->turing, 1);
-        break;
-      case 3:
-        turing_step_length(cxt->turing, -1);
-        break;
-      case 5:
-        turing_step_range(cxt->turing, 1);
-        break;
-      case 6:
-        turing_step_range(cxt->turing, -1);
-        break;
-      default:
-        break;
-    }
+  switch (note % 12) {
+    case 0:
+      turing_step_random(cxt->turing, 1);
+      break;
+    case 1:
+      turing_step_random(cxt->turing, -1);
+      break;
+    case 2:
+      turing_step_length(cxt->turing, 1);
+      break;
+    case 3:
+      turing_step_length(cxt->turing, -1);
+      break;
+    case 5:
+      turing_step_range(cxt->turing, 1);
+      break;
+    case 6:
+      turing_step_range(cxt->turing, -1);
+      break;
+    default:
+      break;
   }
 }
 
-void mode_turing_note_off(struct mode_turing_t *cxt, uint8_t channel, uint8_t note)
-{
-}
-
 static volatile uint8_t counter = 0;
-void mode_turing_clock(struct mode_turing_t *cxt)
+static void mode_clock(mode_turing_t *cxt)
 {
   if (counter == 0) {
     uint8_t note = turing_clock(cxt->turing);
     if (note < NUM_NOTES)
-      cxt->state->cv = cxt->dac_values[note];
-    cxt->state->gate = 1;
+      cxt->out->cv = cxt->dac_values[note];
+    cxt->out->gate = 1;
     counter++;  
   } else if (counter > 0) {
-    cxt->state->gate = 0;
+    cxt->out->gate = 0;
     counter = 0;
   }
-  cxt->state->updated = 1;
+  cxt->out->updated = 1;
 }
  
-void mode_turing_update(struct mode_turing_t *cxt)
+static void mode_update(mode_turing_t *cxt)
 {
   if (TIFR1 & (1 << OCF1A)) {
-    mode_turing_clock(cxt);
+    mode_clock(cxt);
     TIFR1 = (1 << OCF1A);
+  }
+}
+
+void mode_turing_event(mode_t *cxt, enum event ev)
+{
+  switch (ev) {
+    case EVENT_INIT:
+      mode_init(cxt->turing_cxt);
+      break;
+    case EVENT_NOTE_ON:
+      mode_note_on(cxt->turing_cxt, cxt->note);
+      break;
+    case EVENT_RT_CLOCK:
+      mode_clock(cxt->turing_cxt);
+      break;
+    case EVENT_UPDATE:
+      mode_update(cxt->turing_cxt);
+      break;
+    case EVENT_EXIT:
+      mode_exit(cxt->turing_cxt);
+      break;
+    default:
+      break;
   }
 }

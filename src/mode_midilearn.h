@@ -3,15 +3,10 @@
 
 #include "mode.h"
 
-struct settings_t;
-
-struct mode_midilearn_t {
-  struct mode_t base;
+typedef struct mode_midilearn_t {
   struct settings_t *settings;
-};
+} mode_midilearn_t;
 
-void mode_midilearn_init(struct mode_t *cxt);
-void mode_midilearn_note_on(struct mode_t *cxt, uint8_t channel, uint8_t note);
-void mode_midilearn_note_off(struct mode_t *cxt, uint8_t channel, uint8_t note);
+void mode_midilearn_event(mode_t *cxt, enum event ev);
 
 #endif /* MODE_MIDILEARN_H */ 

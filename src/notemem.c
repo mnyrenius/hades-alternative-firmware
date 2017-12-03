@@ -15,9 +15,9 @@ static inline int cmp_la(uint8_t a, uint8_t b)
   return 1;
 }
 
-static inline void _insert(struct notemem_t *nm, struct node_t *node)
+static inline void _insert(notemem_t *nm, node_t *node)
 {
-  struct node_t **n = &nm->top;
+  node_t **n = &nm->top;
 
   if (!(*n)) {
     *n = node;
@@ -36,9 +36,9 @@ static inline void _insert(struct notemem_t *nm, struct node_t *node)
 }
 
 
-static inline void _remove(struct notemem_t *nm, uint8_t note)
+static inline void _remove(notemem_t *nm, uint8_t note)
 {
-  struct node_t **n = &nm->top;
+  node_t **n = &nm->top;
 
   if (note == (*n)->note) {
     (*n)->note = 0xff;
@@ -55,7 +55,7 @@ static inline void _remove(struct notemem_t *nm, uint8_t note)
   }
 }
 
-void notemem_init(struct notemem_t *nm, enum notemem_prio prio)
+void notemem_init(notemem_t *nm, enum notemem_prio prio)
 {
   nm->top = 0;
   nm->active = 0xff;
@@ -78,7 +78,7 @@ void notemem_init(struct notemem_t *nm, enum notemem_prio prio)
   }
 }
 
-uint8_t notemem_note_on(struct notemem_t *nm, uint8_t note)
+uint8_t notemem_note_on(notemem_t *nm, uint8_t note)
 {
   if (nm->active != 0xff) {
     uint8_t idx = 0;
@@ -100,7 +100,7 @@ uint8_t notemem_note_on(struct notemem_t *nm, uint8_t note)
   return nm->active;
 }
 
-uint8_t notemem_note_off(struct notemem_t *nm, uint8_t note)
+uint8_t notemem_note_off(notemem_t *nm, uint8_t note)
 {
   uint8_t res = 0xff;
 

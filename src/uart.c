@@ -3,7 +3,7 @@
 #include "uart.h"
 #include "ringbuffer.h"
 
-static struct ringbuffer_t _rb;
+static ringbuffer_t _rb;
 
 void uart_init(void)
 {

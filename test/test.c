@@ -23,7 +23,7 @@
 
 void test_ringbuffer(void)
 {
-  struct ringbuffer_t rb;
+  ringbuffer_t rb;
   ringbuffer_init(&rb);
 
   for (int i = 1; i < 32; ++i) {
@@ -47,10 +47,10 @@ void test_ringbuffer(void)
   printf("TEST RINGBUFFER OK!\n");
 }
 
-void notemem_print(struct notemem_t *nm)
+void notemem_print(notemem_t *nm)
 {
   printf("(%u, [", nm->active);
-  for (struct node_t *n = nm->top; n; n = n->next) {
+  for (node_t *n = nm->top; n; n = n->next) {
     printf("%u, ", n->note);
   }
   printf("])\n");
@@ -68,7 +68,7 @@ void notemem_print(struct notemem_t *nm)
 
 void test_notemem(void)
 {
-  struct notemem_t nm;
+  notemem_t nm;
   notemem_init(&nm, NM_PRIO_HIGH);
 
   uint8_t note_ons[10]  = { 1, 6, 5, 8, 4, 2, 7, 10, 3, 12 };
@@ -103,7 +103,7 @@ void test_notemem(void)
   printf("TEST NOTEMEM OK!\n");
 }
 
-void turing_print(struct turing_t * t, uint8_t note)
+void turing_print(turing_t * t, uint8_t note)
 {
   int len = turing_get_length(t);
 
@@ -130,7 +130,7 @@ void turing_print(struct turing_t * t, uint8_t note)
 
 void test_turing(void)
 {
-  struct turing_t t;
+  turing_t t;
 
   turing_init(&t, time(0));
   turing_step_random(&t, 2);

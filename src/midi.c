@@ -7,17 +7,17 @@
 #define MIDI_CONTINUE 0xfb
 #define MIDI_STOP     0xfc
 
-void handle_voice_msg(struct midi_t *m, uint8_t byte);
-void handle_rt_msg(struct midi_t *m, uint8_t byte);
+void handle_voice_msg(midi_t *m, uint8_t byte);
+void handle_rt_msg(midi_t *m, uint8_t byte);
 
-void midi_init(struct midi_t *m)
+void midi_init(midi_t *m)
 {
   m->running_status = 0;
   m->expected = 0;
   m->data_idx = 0;
 }
 
-void midi_process(struct midi_t *m, uint8_t data)
+void midi_process(midi_t *m, uint8_t data)
 {
   if (data >= MIDI_CLOCK)
     handle_rt_msg(m, data);
@@ -47,7 +47,7 @@ void midi_process(struct midi_t *m, uint8_t data)
   }
 }
 
-void handle_rt_msg(struct midi_t *m, uint8_t byte)
+void handle_rt_msg(midi_t *m, uint8_t byte)
 {
   switch (byte) {
     case MIDI_CLOCK:
@@ -64,7 +64,7 @@ void handle_rt_msg(struct midi_t *m, uint8_t byte)
   }
 }
 
-void handle_voice_msg(struct midi_t *m, uint8_t byte)
+void handle_voice_msg(midi_t *m, uint8_t byte)
 {
   uint8_t *msg = m->data;
   uint8_t status = byte & 0xf0;

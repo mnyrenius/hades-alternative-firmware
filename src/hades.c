@@ -24,18 +24,14 @@
  *
  *-------------------------------------- */
 
-extern struct mode_prio_t mode_prio;
-extern struct mode_midilearn_t mode_midilearn;
-extern struct mode_turing_t mode_turing;
-
-struct hades_t {
-  struct settings_t settings;
-  struct notemem_t notemem;
-  struct turing_t turing;
+typedef struct hades_t {
+  settings_t settings;
+  notemem_t notemem;
+  turing_t turing;
   uint16_t dac_values[NUM_NOTES];
-  struct mode_t *modes[MODE_END];
-  struct output_state_t state;
-};
+  mode_t modes[MODE_END];
+  output_t out;
+} hades_t;
 
 void generate_dac_values(uint16_t *values)
 {
@@ -51,12 +47,11 @@ void generate_dac_values(uint16_t *values)
 
 void note_on(void *arg, uint8_t channel, uint8_t note)
 {
-  struct hades_t * cxt = (struct hades_t *)arg;
-  struct mode_t *m = cxt->modes[cxt->settings.mode];
+  hades_t * cxt = (hades_t *)arg;
+  mode_t *m = &cxt->modes[cxt->settings.mode];
 
   if (channel == 15) {
-    if (m->exit)
-      m->exit(m);
+    m->event(m, EVENT_EXIT);
     uint8_t k = note % 12;
     switch (k) {
       case 0: // c - mode note prio last
@@ -77,28 +72,30 @@ void note_on(void *arg, uint8_t channel, uint8_t note)
       default:
         break;
     }
-    m = cxt->modes[cxt->settings.mode];
-    if (m->init)
-      m->init(m);
+    m = &cxt->modes[cxt->settings.mode];
+    m->event(m, EVENT_INIT);
     settings_write(&cxt->settings);
   } else {
-    m->note_on(m, channel, note);
+    m->channel = channel;
+    m->note = note;
+    m->event(m, EVENT_NOTE_ON);
   }
 }
 
 void note_off(void *arg, uint8_t channel, uint8_t note)
 {
-  struct hades_t * cxt = (struct hades_t *)arg;
-  struct mode_t *m = cxt->modes[cxt->settings.mode];
-  m->note_off(m, channel, note);
+  hades_t * cxt = (hades_t *)arg;
+  mode_t *m = &cxt->modes[cxt->settings.mode];
+  m->channel = channel;
+  m->note = note;
+  m->event(m, EVENT_NOTE_OFF);
 }
 
 void clock(void *arg)
 {
-  struct hades_t * cxt = (struct hades_t *)arg;
-  struct mode_t *m = cxt->modes[cxt->settings.mode];
-  if (m->clock)
-    m->clock(m);
+  hades_t * cxt = (hades_t *)arg;
+  mode_t *m = &cxt->modes[cxt->settings.mode];
+  m->event(m, EVENT_RT_CLOCK);
 }
 
 void start(void *cxt)
@@ -113,41 +110,45 @@ int main()
 {
   DDRD |= _BV(PD2);
 
-  struct hades_t hades = {
-    .modes = {
-      (void*)&mode_prio,
-      (void*)&mode_prio,
-      (void*)&mode_prio,
-      (void*)&mode_midilearn,
-      (void*)&mode_turing,
-    },
-    .state = {
+ hades_t hades = {
+    .out = {
       .cv = 0,
       .gate = 0,
       .updated = 0,
     },
   };
 
+  mode_prio_t mode_prio = {
+    .settings = &hades.settings,
+    .notemem = &hades.notemem,
+    .dac_values = hades.dac_values,
+    .out = &hades.out,
+  };
+
+  mode_midilearn_t mode_midilearn = {
+    .settings = &hades.settings,
+  };
+
+  mode_turing_t mode_turing = {
+    .settings = &hades.settings,
+    .turing = &hades.turing,
+    .dac_values = hades.dac_values,
+    .out = &hades.out,
+  };
+
+  hades.modes[MODE_NOTE_PRIO_LAST] = (mode_t) { .event = mode_prio_event       , .prio_cxt      = &mode_prio      };
+  hades.modes[MODE_NOTE_PRIO_HIGH] = hades.modes[MODE_NOTE_PRIO_LAST];
+  hades.modes[MODE_NOTE_PRIO_LOW]  = hades.modes[MODE_NOTE_PRIO_LAST];
+  hades.modes[MODE_MIDI_LEARN]     = (mode_t) { .event = mode_midilearn_event  , .midilearn_cxt = &mode_midilearn };
+  hades.modes[MODE_TURINGMACHINE]  = (mode_t) { .event = mode_turing_event     , .turing_cxt    = &mode_turing    };
+
   generate_dac_values(hades.dac_values);
   settings_read(&hades.settings);
 
-  mode_prio.settings = &hades.settings;
-  mode_prio.notemem = &hades.notemem;
-  mode_prio.dac_values = hades.dac_values;
-  mode_prio.state = &hades.state;
+  mode_t *m = &hades.modes[hades.settings.mode];
+  m->event(m, EVENT_INIT);
 
-  mode_midilearn.settings = &hades.settings;
- 
-  mode_turing.settings = &hades.settings;
-  mode_turing.turing = &hades.turing;
-  mode_turing.dac_values = hades.dac_values;
-  mode_turing.state = &hades.state;
-   
-  struct mode_t *m = hades.modes[hades.settings.mode];
-  if (m->init)
-    m->init(m); 
-
-  struct midi_t midi = {
+  midi_t midi = {
     .callback_data = &hades,
     .note_on = note_on,
     .note_off = note_off,
@@ -168,18 +169,17 @@ int main()
     if (uart_receive(&rxb) == 0)
       midi_process(&midi, rxb);
 
-    m = hades.modes[hades.settings.mode];
-    if (m->update)
-      m->update(m);
+    m = &hades.modes[hades.settings.mode];
+    m->event(m, EVENT_UPDATE);
 
-    if (hades.state.updated) {
-      mcp4921_write(hades.state.cv);
-      if (hades.state.gate)
+    if (hades.out.updated) {
+      mcp4921_write(hades.out.cv);
+      if (hades.out.gate)
         PORTD |= _BV(PD2);
       else
         PORTD &= ~_BV(PD2);
 
-      hades.state.updated = 0;
+      hades.out.updated = 0;
     }
   }
 }
