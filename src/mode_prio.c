@@ -22,9 +22,9 @@ void mode_init(mode_prio_t *cxt)
   notemem_init(cxt->notemem, prio);
 }
 
-void mode_note_on(mode_prio_t *cxt, uint8_t note)
+void mode_note_on(mode_prio_t *cxt, uint8_t note, uint8_t channel)
 {
-  if (note < NUM_NOTES) {
+  if (channel == cxt->settings->midi_channel && note < NUM_NOTES) {
     uint8_t n = notemem_note_on(cxt->notemem, note);
     if (n < NUM_NOTES) {
       cxt->out->cv = cxt->dac_values[n];
@@ -52,7 +52,7 @@ void mode_prio_event(mode_t *cxt, enum event ev)
       mode_init(cxt->prio_cxt);
       break;
     case EVENT_NOTE_ON:
-      mode_note_on(cxt->prio_cxt, cxt->note);
+      mode_note_on(cxt->prio_cxt, cxt->note, cxt->channel);
       break;
     case EVENT_NOTE_OFF:
       mode_note_off(cxt->prio_cxt, cxt->note);

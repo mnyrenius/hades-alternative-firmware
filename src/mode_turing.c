@@ -19,8 +19,12 @@ static void mode_exit(mode_turing_t *cxt)
   TCCR1B = 0;
 }
 
-static void mode_note_on(mode_turing_t *cxt, uint8_t note)
+static void mode_note_on(mode_turing_t *cxt, uint8_t note, uint8_t channel)
 {
+  if (channel != cxt->settings->midi_channel) {
+    return;
+  }
+
   switch (note % 12) {
     case 0:
       turing_step_random(cxt->turing, 1);
@@ -76,7 +80,7 @@ void mode_turing_event(mode_t *cxt, enum event ev)
       mode_init(cxt->turing_cxt);
       break;
     case EVENT_NOTE_ON:
-      mode_note_on(cxt->turing_cxt, cxt->note);
+      mode_note_on(cxt->turing_cxt, cxt->note, cxt->channel);
       break;
     case EVENT_RT_CLOCK:
       mode_clock(cxt->turing_cxt);
