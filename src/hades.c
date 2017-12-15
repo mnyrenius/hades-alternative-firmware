@@ -75,7 +75,7 @@ void note_on(void *arg, uint8_t channel, uint8_t note)
     m = &cxt->modes[cxt->settings.mode];
     m->event(m, EVENT_INIT);
     settings_write(&cxt->settings);
-  } else {
+  } else if (channel == cxt->settings.midi_channel || cxt->settings.mode == MODE_MIDI_LEARN) {
     m->channel = channel;
     m->note = note > cxt->settings.midi_base_note ? note - cxt->settings.midi_base_note : 0;
     m->event(m, EVENT_NOTE_ON);
@@ -85,10 +85,13 @@ void note_on(void *arg, uint8_t channel, uint8_t note)
 void note_off(void *arg, uint8_t channel, uint8_t note)
 {
   hades_t * cxt = (hades_t *)arg;
-  mode_t *m = &cxt->modes[cxt->settings.mode];
-  m->channel = channel;
-  m->note = note > cxt->settings.midi_base_note ? note - cxt->settings.midi_base_note : 0;
-  m->event(m, EVENT_NOTE_OFF);
+
+  if (channel == cxt->settings.midi_channel) {
+    mode_t *m = &cxt->modes[cxt->settings.mode];
+    m->channel = channel;
+    m->note = note > cxt->settings.midi_base_note ? note - cxt->settings.midi_base_note : 0;
+    m->event(m, EVENT_NOTE_OFF);
+  }
 }
 
 void clock(void *arg)
