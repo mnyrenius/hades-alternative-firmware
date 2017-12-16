@@ -36,13 +36,13 @@ typedef struct hades_t {
 void generate_dac_values(uint16_t *values)
 {
   // v_out = v_ref * d / 4096
-  // 1 volt is ~= 820 which gives 820 / 12 = 68.333.. per
-  // note. since we need an integer, multiply by 3 -> 205 and
+  // 1 volt is = 819 which gives 819 / 12 = 68.25 per
+  // semi note. since we need an integer, multiply by 4 -> 273 and
   // use this as the step between each note.
-  // finally divide each note value by 3 to get the real dac value again and it
+  // finally divide each note value by 4 to get the real dac value again and it
   // should hopefully be quite close to 1v/oct.
   for (uint8_t i = 0; i < NUM_NOTES; ++i)
-    values[i] = MIN(NUM_DAC_VALUES - 1, 205 * i / 3);
+    values[i] = MIN(NUM_DAC_VALUES - 1, 273 * i / 4);
 }
 
 void note_on(void *arg, uint8_t channel, uint8_t note)
@@ -51,7 +51,6 @@ void note_on(void *arg, uint8_t channel, uint8_t note)
   mode_t *m = &cxt->modes[cxt->settings.mode];
 
   if (channel == 15) {
-    m->event(m, EVENT_EXIT);
     uint8_t k = note % 12;
     switch (k) {
       case 0: // c - mode note prio last
@@ -72,9 +71,8 @@ void note_on(void *arg, uint8_t channel, uint8_t note)
       default:
         break;
     }
-    m = &cxt->modes[cxt->settings.mode];
-    m->event(m, EVENT_INIT);
     settings_write(&cxt->settings);
+    __asm__("jmp 0"); // soft reset to reload settings
   } else if (channel == cxt->settings.midi_channel || cxt->settings.mode == MODE_MIDI_LEARN) {
     m->channel = channel;
     m->note = note > cxt->settings.midi_base_note ? note - cxt->settings.midi_base_note : 0;
@@ -112,6 +110,7 @@ void stop(void *cxt)
 int main()
 {
   DDRD |= _BV(PD2);
+  TCCR1B = 0;
 
  hades_t hades = {
     .out = {
@@ -168,6 +167,16 @@ int main()
 
   sei();
 
+#ifdef TESTMODE
+  uint8_t start_msg[] = {
+    0xb6,
+    hades.settings.mode,
+    hades.settings.midi_channel,
+    hades.settings.midi_base_note
+  };
+  uart_transmit(start_msg, sizeof(start_msg));
+#endif
+
   while (1) {
     if (uart_receive(&rxb) == 0)
       midi_process(&midi, rxb);
@@ -177,6 +186,16 @@ int main()
 
     if (hades.out.updated) {
       mcp4921_write(hades.out.cv);
+
+#ifdef TESTMODE
+      uint8_t cv[] = {
+        hades.out.cv,
+        hades.out.cv >> 8,
+        hades.out.gate
+      };
+      uart_transmit(cv, sizeof(cv));
+#endif
+
       if (hades.out.gate)
         PORTD |= _BV(PD2);
       else

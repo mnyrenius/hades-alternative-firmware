@@ -1,0 +1,22 @@
+unit tests
+-------------------------------------------------------------------------------
+basic tests for data structures etc.
+build and run:
+  make unittest
+
+
+target tests
+-------------------------------------------------------------------------------
+the firmware can be built with a test mode, which makes it send various
+information, such as dac value, gate status and current settings, via uart.
+this makes it possible to run this test mode firmware on an arduino and verify
+that the firmware responds with expected values when you send midi data to it.
+
+currently it's hardcoded to /dev/ttyUSB0, modify it as you like.
+
+build and flash test mode firmware:
+  TESTMODE=1 make flash
+
+run tests:
+  make targettest
+

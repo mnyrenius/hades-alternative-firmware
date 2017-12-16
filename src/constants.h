@@ -5,6 +5,15 @@
 #define NUM_NOTES      (12 * NUM_OCTAVES) + 1
 #define NUM_DAC_VALUES 4096
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
+#define UBRR_9600B 103
+#define UBRR_31250B 31
+
+#ifdef TESTMODE
+#define UBRR_CONF UBRR_9600B
+#else
+#define UBRR_CONF UBRR_31250B
+#endif
  
 typedef struct output_t {
   uint16_t cv;

@@ -14,11 +14,6 @@ static void mode_init(mode_turing_t *cxt)
   TCCR1B |= ((1 << CS10) | (1 << CS11));
 }
 
-static void mode_exit(mode_turing_t *cxt)
-{
-  TCCR1B = 0;
-}
-
 static void mode_note_on(mode_turing_t *cxt, uint8_t note)
 {
   switch (note % 12) {
@@ -83,9 +78,6 @@ void mode_turing_event(mode_t *cxt, enum event ev)
       break;
     case EVENT_UPDATE:
       mode_update(cxt->turing_cxt);
-      break;
-    case EVENT_EXIT:
-      mode_exit(cxt->turing_cxt);
       break;
     default:
       break;
