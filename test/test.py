@@ -6,7 +6,8 @@ import time
 modes = { "midilearn": (1, b'\x03'),
           "prio_last": (0, b'\x00'),
           "prio_hi"  : (2, b'\x01'),
-          "prio_lo"  : (4, b'\x02') }
+          "prio_lo"  : (4, b'\x02'),
+          "turing"   : (5, b'\x04'), }
 
 ###############################################################################
 # TEST CASES
@@ -61,6 +62,38 @@ def test_mode_midilearn(serialport):
     note_on(serialport, 0, 4)
     check_cv_gate(serialport, None, True)
 
+def test_turing(serialport):
+    set_mode(serialport, "midilearn")
+    note_on(serialport, 0, 0)
+    set_mode(serialport, "turing")
+
+    # not started - no output expected
+    for j in range(0, 6):
+            rt_clock(serialport)
+            time.sleep(0.01)
+    check_noting_received(serialport)
+
+    # start - expect output
+    rt_start(serialport);
+    expect_gate = True
+
+    rt_clock(serialport)
+    check_cv_gate(serialport, None, expect_gate)
+    expect_gate = not expect_gate
+
+    for i in range(0,64):
+        for j in range(0, 6):
+            rt_clock(serialport)
+            time.sleep(0.01)
+        check_cv_gate(serialport, None, expect_gate)
+        expect_gate = not expect_gate
+
+    # stopped - no output expected
+    rt_stop(serialport)
+    for j in range(0, 6):
+            rt_clock(serialport)
+            time.sleep(0.01)
+    check_noting_received(serialport)
 
 ###############################################################################
 # HELPER FUNCTIONS
@@ -100,6 +133,18 @@ def note_off(ser, note, channel):
     cmd = (128 + channel).to_bytes(1, byteorder='little') + note.to_bytes(1, byteorder='little') + b"\x7f"
     assert ser.write(cmd) == 3
     time.sleep(0.1)
+
+def rt_start(ser):
+    assert ser.write(b'\xfa') == 1
+
+def rt_stop(ser):
+    assert ser.write(b'\xfc') == 1
+
+def rt_continue(ser):
+    assert ser.write(b'\xfb') == 1
+
+def rt_clock(ser):
+    assert ser.write(b'\xf8') == 1
  
 def set_mode(ser, mode, expected_channel=None, expected_base_note=None):
     print("Setting mode: {}".format(mode))

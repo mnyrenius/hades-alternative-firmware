@@ -3,6 +3,3 @@
 
 * MIDI boot loader
   It should be possible to update firmware via MIDI.
-
-* Mode that mimics the eurorack module Turing Machine by Music Thing Modular
-  Seems very rational for a midi to cv circuit.

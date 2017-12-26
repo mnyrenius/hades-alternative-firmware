@@ -99,12 +99,18 @@ void clock(void *arg)
   m->event(m, EVENT_RT_CLOCK);
 }
 
-void start(void *cxt)
+void start(void *arg)
 {
+  hades_t * cxt = (hades_t *)arg;
+  mode_t *m = &cxt->modes[cxt->settings.mode];
+  m->event(m, EVENT_RT_START);
 }
 
-void stop(void *cxt)
+void stop(void *arg)
 {
+  hades_t * cxt = (hades_t *)arg;
+  mode_t *m = &cxt->modes[cxt->settings.mode];
+  m->event(m, EVENT_RT_STOP);
 }
 
 int main()

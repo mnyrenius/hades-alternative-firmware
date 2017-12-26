@@ -58,7 +58,7 @@ Example, set midi channel 2 and set C2 as the base note that should output 0V:
 
 This mode mimics the eurorack module by Music Thing Modular.
 
-Fixed clock for now, should be synced to midi clock later.
+It's clocked by external MIDI sync.
 
 c  - turn random knob clockwise (bit invert probability [1/2, 1/4, off, 1/8, 1/16])
 
